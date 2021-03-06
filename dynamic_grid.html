@@ -1,0 +1,750 @@
+<!DOCTYPE HTML>
+<HTML>
+<HEAD>
+<TITLE>Garbtronix: ZS</TITLE>
+<STYLE>
+	body{
+		background-color: rgb(10,15,10);
+	}
+	.Main{
+		display: inline-block;
+	}
+	.control{
+		display: block;
+		valign: top;
+	}
+	.label{
+		color: rgb(250,255,250);
+	}
+</STYLE>
+</HEAD>
+<BODY>	
+	<div id="controls" class="Main">
+		<span class="control label">Garbtronix Zombie Survival Simulator</span>
+		<div class="control">
+			<button id="btnStart" onclick="Start()">Start</button>
+			<!-- <button id="btnClear" onclick="Clear()">Clear</button>-->
+		</div>
+		<span class="control label">Instructions</span>
+		<span class="control label">---------------------</span>
+		<span class="control label">Fill out the textboxes,and click Start</span>
+                <span class="control label">Hit F5(refresh) to start over</span>
+                <span class="control label">Email features or further ideas to:</span>
+                <a href="mailto:garb7477@gmail.com" class="control label">garb7477@gmail.com</a>
+		<span class="control label">---------------------</span>
+		<span class="label">Total Population(Recommend 500 or less)</span>
+		<input  id="txtTotalPopulation" class="control"
+				type="text"/>
+		<span class="label">Starting Zombie Count</span>
+		<input  id="txtZombieCount" class="control"
+				type="text"/>
+		<span class="label">Starting Robot Count</span>
+		<input  id="txtRobotCount" class="control"
+				type="text"/>
+		<span class="control label">Key</span>
+		<span class="control label">---------------------</span>
+		<span class="control label">Dots:</span>
+		<span class="control label">White  = Human</span>
+		<span class="control label">Purple = Zombie</span>
+		<span class="control label">Blue   = Robot</span>
+		<span class="control label">Red    = Dead human or zombie</span>
+		<span class="control label">Squares:</span>
+		<span class="control label">Black = Flat ground</span>
+                <span class="control label">Grey  = Wall</span>
+		<span class="control label">Green = Forest</span>
+		<span class="control label">Blue  = Water</span>
+		<span class="control label">---------------------</span>
+                <br/>
+	</div>
+	<CANVAS id="cnvBack"
+			style="
+			background-color: rgba(0,0,0,0.0);
+			position: absolute;
+			">
+	</CANVAS>
+	<CANVAS id="cnvFront"
+			style="
+			background-color: rgba(0,0,0,0.0);
+			position: absolute;">
+	</CANVAS>
+        <div class="Main">
+		<span class="control label">What Am I watching?</span>
+		<span class="control label">---------------------</span>
+		<span class="control label">You are watching a kinda complex AI I created!</span>
+                <span class="control label">The humans will flee from the zombies or possibly fight them</span>
+                <span class="control label">The zombies are always hunting for humans</span>
+                <span class="control label">The robots have been programmed to eliminate any</span>
+                <span class="control label">threats to their human masters (Asimov's Law #1.1)</span>
+		<span class="control label">---------------------</span>
+       </div>
+</BODY>
+<SCRIPT>
+//---------------------------------------
+//
+// GLOBALS
+//
+//---------------------------------------
+window.onload = function(){
+	RebuildEverything();	
+        window.MAP.Create();
+	//---------------------------------------
+	//
+	// MAIN LOOP
+	//
+	//---------------------------------------
+	window.MAINLOOP = window.setInterval(function(){
+		switch(window.STATE)
+		{
+			case 'Title':
+			{
+                window.CTXS[0].Render();
+			}
+			break;
+			case 'Build':
+			{
+				window.ACTORS.Create(window.INPUT[0],window.INPUT[1],window.INPUT[2]);
+				window.STATE = 'Run';
+			}break;
+			case 'Run':
+			{
+				window.ACTORS.Move();
+				window.CTXS[0].Render();
+				window.CTXS[1].Render();
+			}
+			break;
+		};//end of render switch
+	},window.RENDERCYCLE);
+};
+function Start(){
+	if(window.STATE == 'Title'){
+		window.STATE = 'Build';
+		window.INPUT[0] = document.getElementById('txtTotalPopulation').value;
+		window.INPUT[1] = document.getElementById('txtZombieCount').value;
+		window.INPUT[2] = document.getElementById('txtRobotCount').value;
+	}
+};
+function Clear(){
+	window.STATE = 'Title';
+	document.getElementById('txtTotalPopulation').value = '';
+	document.getElementById('txtZombieCount').value     = '';
+	document.getElementById('txtRobotCount').value      = '';
+	for(var i=0;i<window.INPUT.length;i++){
+		window.INPUT[i] = null;
+	};
+	NullEverything();
+	RebuildEverything();
+};
+function RebuildEverything(){
+		window.CNVS        = new Array();
+		window.CNVS[0]     = document.getElementById('cnvBack');
+		window.CNVS[1]     = document.getElementById('cnvFront');
+		window.CNVS[0].style.top = 10;
+		window.CNVS[1].style.top = 10;
+		window.CTXS        = new Array();
+		window.CTXS[0] = new Context(window.CNVS[0].getContext('2d'),-1);
+		window.CTXS[1] = new Context(window.CNVS[1].getContext('2d'),0);
+		window.RENDERCYCLE = (1000/60);
+		window.STATE       = 'Title';
+		window.INPUT       = new Array();
+		window.MAP         = new Map();
+		window.ACTORS      = new ActorManager();
+		window.CTXS[0].AppendObjectToRender(new Array(
+			window.MAP
+		));
+		window.CTXS[1].AppendObjectToRender(new Array(
+			window.ACTORS
+		));
+}
+function NullEverything(){
+	for(var i=0;i<window.CNVS.length;i++)
+	{
+		window.CTXS[i] = null;
+		window.CNVS[i] = null;
+	}
+	window.CNVS          = null;
+	window.CTXS          = null;
+	window.RENDERCYCLE   = null;
+	window.STATE         = null;
+	window.ACTORS        = null;
+	window.MAP           = null;
+	window.INPUT         = null;
+	if(window.MAINLOOP != null)
+	{
+		window.MAINLOOP.clearInterval(); 
+	}
+	window.MAINLOOP     = null;
+}
+//
+//
+//
+//
+//
+var Context = function(ctx,renderRate){
+	this.ctx           = ctx;
+	this.rate          = renderRate;
+	this.currentTick   = renderRate;
+	this.objectsToDraw = new Array();
+	this.override      = false;
+};
+Context.prototype.Render = function(){
+	if(this.override == false)
+	{
+		if(this.currentTick == this.rate){
+			this.ctx.clearRect(0,0,300,300);
+			for(var i=0;i<this.objectsToDraw.length;i++)
+			{
+				this.objectsToDraw[i].Draw();
+			}
+			this.currentTick = (this.currentTick != -1)?0:-1;
+		}else{
+			this.currentTick += (this.currentTick != -1)?1:0;
+		}
+	}else{
+		this.currentTick = this.rate;
+		this.override = false;
+	}
+};
+Context.prototype.AppendObjectToRender = function(obj){
+	for(var i=0;i<obj.length;i++){
+		if(obj[i]!= null || !(typeof obj[i].Draw === 'undefined')){
+			obj[i].objCtx = this.ctx;
+			this.objectsToDraw.push(obj[i]);
+		}else{
+			console.log('Object is null or does not have a draw method defined: '+obj[i]);
+		}
+	}
+};
+//
+//
+//
+//
+//
+var Degree = function(u){
+	this.units;
+	if(u != null){
+		this.units=u;
+	}
+};
+Degree.prototype.Set = function(u,type){
+	if(u != null){
+		while(u>360){u-=360;}
+		switch(type){
+			case'degrees':{
+				this.units=u;
+			}break;
+			case'radians':{
+				this.units=u*(180/Math.PI);
+			}break;
+		}
+	}else{
+		this.units = null;
+		console.log('Units not set');
+	}
+};
+Degree.prototype.GetAsRadian = function(){
+	return this.units*(Math.PI/180);
+};
+Degree.prototype.GetAsDegree = function(){
+	return this.units;
+};
+//
+//
+//
+//
+//
+var Map = function(){
+	this.objCtx   = null;
+	this.rows     = 0;
+	this.columns  = 0;
+	this.tilesize = 20;
+	this.tiles    = new Array();
+	this.tileData = new Array();
+	/*this.tileData = new Array(new Array(2,2,2,0,0,0,0,0,0,0,0,0,0,2,2),
+							  new Array(2,2,0,0,0,0,0,0,0,0,0,0,0,2,2),
+							  new Array(2,0,0,0,0,0,0,0,0,0,0,3,3,3,2),
+							  new Array(2,0,0,0,0,0,0,0,0,0,3,1,1,1,3),
+							  new Array(2,0,0,0,0,0,0,0,0,3,1,0,0,1,3),
+							  new Array(2,0,0,0,0,0,0,0,0,0,0,0,0,1,3),
+							  new Array(2,0,0,0,0,0,0,0,0,3,1,0,0,1,3),
+							  new Array(2,0,0,0,0,0,0,0,0,0,3,1,1,1,3),
+							  new Array(2,0,0,0,0,0,0,0,0,0,0,3,3,3,2),
+							  new Array(2,2,0,0,0,0,0,0,0,0,0,0,0,2,2),
+							  new Array(2,2,2,0,0,0,0,0,0,0,0,0,0,2,2)
+							  );*/
+};
+Map.prototype.Create = function(){
+	//Randomize Map
+	// 165 tiles
+	var trees = Math.floor((Math.random()*20)+5);
+	var water = Math.floor((Math.random()*20)+0);
+	var walls = Math.floor((Math.random()*20)+5);
+	var startTile = Math.floor((Math.random()*22)+0);
+	for(var r=0;r<11;r++){
+		this.tileData[r] = new Array();
+		for(var c=0;c<15;c++){
+			var temp = Math.floor((Math.random()*4)+1);
+			if((r+1)*(c+1) > startTile){
+				switch(temp){
+					case 0:{
+						this.tileData[r][c] = 0;
+					}break;
+					case 1:{
+						this.tileData[r][c] = (walls > 0)?temp:0;
+						walls--;
+					}break;
+					case 2:{
+						this.tileData[r][c] = (trees > 0)?temp:0;
+						trees--;
+					}break;
+					case 3:{
+						this.tileData[r][c] = (water > 0)?temp:0;
+						water--;
+					}break;
+					default:{
+						this.tileData[r][c] = 0;
+					}break;
+				}
+			}else{
+				this.tileData[r][c] = 0;
+			}
+		}
+	}
+	//Create data base on array
+	this.rows    = this.tileData.length;
+	this.columns = this.tileData[0].length;
+	for(var i=0;i<window.CNVS.length;i++){
+		window.CNVS[i].width  = this.rows*this.tilesize;
+		window.CNVS[i].height = this.columns*this.tilesize;
+	}
+	//Add Tiles to Array
+	for(var r=0;r<this.rows;r++)
+	{
+		this.tiles[r] = new Array();
+		for(var c=0;c<this.columns;c++)
+		{
+			this.tiles[r][c] = new Array((r*this.tilesize),(c*this.tilesize),this.tileData[r][c]);
+		}
+	}
+};
+Map.prototype.Draw = function(){
+	for(var r=0;r<this.rows;r++)
+	{
+		for(var c=0;c<this.columns;c++)
+		{
+			this.objCtx.beginPath();
+			this.objCtx.strokeStyle = 'rgba(255,255,255,0.03)';
+			this.objCtx.strokeRect(this.tiles[r][c][0],this.tiles[r][c][1],this.tilesize,this.tilesize);
+			switch(this.tiles[r][c][2])
+			{
+				case 0:{}break;
+				case 1:{
+					this.objCtx.fillStyle = 'rgba(255,255,255,0.3)';
+					this.objCtx.fillRect(this.tiles[r][c][0],this.tiles[r][c][1],this.tilesize,this.tilesize);				
+				}break;
+				case 2:{
+					this.objCtx.fillStyle = 'rgba(100,255,100,0.3)';
+					this.objCtx.fillRect(this.tiles[r][c][0],this.tiles[r][c][1],this.tilesize,this.tilesize);
+				}break;	
+				case 3:{
+					this.objCtx.fillStyle = 'rgba(100,100,255,0.5)';
+					this.objCtx.fillRect(this.tiles[r][c][0],this.tiles[r][c][1],this.tilesize,this.tilesize);
+				}break;							
+				default:{}break;
+			}
+			this.objCtx.closePath();
+		}
+	}
+};
+//
+//
+//
+//
+//
+var ActorManager = function(){
+	this.objCtx = null;
+	this.actors = new Array();
+	this.zombiePreSettings = new Array(1,1,10);
+	this.robotPreSettings = new Array(0.5,0.5,15);
+};
+ActorManager.prototype.Create = function(t,zC,rC){
+	var winH = window.CNVS[1].height;
+	var winW = window.CNVS[1].width;
+	var tilesize = window.MAP.tilesize;
+	for(var i=0;i<t;i++){
+		this.actors[i] = new Actor(this.objCtx);
+		var s = Math.floor((Math.random()*3)+1); 
+		var st = Math.floor((Math.random()*8)+0); 
+		var r = Math.floor((Math.random()*270)+0); 
+		var ts = Math.floor((Math.random()*30)+20); 
+		var dl = Math.floor((Math.random()*20)+10); 
+		var me = Math.floor((Math.random()*25)+5);
+		var x = Math.floor((Math.random()*(winW-(winW/4)))+(winW/4));  
+		var y = Math.floor((Math.random()*(winH-(winH/4)))+(winH/4));		
+		var nextX = x + Math.cos(r*(Math.PI/180)) * s; 
+		var nextY = y + Math.sin(r*(Math.PI/180)) * s; 
+		try{
+			while(this.actors[i].CheckNextStepIsNotAWall(nextX,nextY) == false){
+				x = Math.floor((Math.random()*(winW-(winW/4)))+(winW/4)); 
+				y = Math.floor((Math.random()*(winH-(winH/4)))+(winH/4));
+				nextX = x + Math.cos(r*(Math.PI/180)) * s;
+				nextY = y + Math.sin(r*(Math.PI/180)) * s; 			
+			}
+		}catch(e){
+			//console.log('Error on spawn: '+e);
+		}
+		if(i<zC)
+		{
+			this.actors[i].Create('zombie',x,y,this.zombiePreSettings[0],r,this.zombiePreSettings[1],this.zombiePreSettings[2],0,-1);
+		}else{
+			this.actors[i].Create('human',x,y,s,r,ts,dl,st,me);
+		}		
+		if(i >= t-rC)
+		{
+			this.actors[i].Create('robot',x,y,this.robotPreSettings[0],0,this.robotPreSettings[1],this.robotPreSettings[2],8,50);
+		}
+	}
+};
+ActorManager.prototype.Draw = function(){
+	for(var i=0;i<this.actors.length;i++){
+		this.actors[i].Draw();
+	}	
+};
+ActorManager.prototype.Move = function(){
+	for(var i=0;i<this.actors.length;i++){
+		for(var j=0;j<this.actors.length;j++){
+			if(i != j){
+				if(this.actors[i].CheckActorCollision(this.actors[j]))
+				{
+					this.DetermineCollisionConsequence(this.actors[i],this.actors[j])
+					break;
+				}
+				if(this.actors[i].CheckIfActorInVision(this.actors[j])){
+					this.DetermineVisionConsequence(this.actors[i],this.actors[j],i,j);
+					break;
+				}else{
+					this.actors[i].followingActor = -1;
+				}
+			}
+		}	
+		this.actors[i].Move();
+	}	
+};
+ActorManager.prototype.DetermineCollisionConsequence = function(a1,a2){
+	var action = this.ReturnActorCombination(a1,a2);
+	switch(action){
+		case 1:{
+			if(this.DetermineFightOutcome(action,a1) == false)
+			{
+				a1.Create('zombie',a1.x,a1.y,this.zombiePreSettings[0],a1.r,this.zombiePreSettings[1],this.zombiePreSettings[2]);
+			}else{
+				a2.Create('dead',a2.x,a2.y,0,a2.r,0,0);
+			}
+		}break;
+		case -1:{	
+			if(this.DetermineFightOutcome(action,a2) == false)
+			{		
+				a2.Create('zombie',a2.x,a2.y,this.zombiePreSettings[0],a2.r,this.zombiePreSettings[1],this.zombiePreSettings[2]);
+			}else{
+				a1.Create('dead',a1.x,a1.y,0,a1.r,0,0);
+			}
+		}break;
+		case -2:{
+			if(this.DetermineFightOutcome(action,a1) == false)
+			{		
+				a2.Create('dead',a2.x,a2.y,0,a2.r,0,0);
+			}else{
+				a1.Create('dead',a1.x,a1.y,0,a1.r,0,0);
+			}
+		}break;
+		case 2:{				
+			if(this.DetermineFightOutcome(action,a2) == false)
+			{		
+				a1.Create('dead',a1.x,a1.y,0,a1.r,0,0);
+			}else{
+				a2.Create('dead',a2.x,a2.y,0,a2.r,0,0);
+			}
+		}break;
+		case -3:{
+			if(this.DetermineFightOutcome(action,a1) == false)
+			{
+				a1.Create('dead',a1.x,a1.y,0,a1.r,0,0);
+			}
+		}break;
+		case 3:{
+			if(this.DetermineFightOutcome(action,a2) == false)
+			{		
+				a2.Create('dead',a2.x,a2.y,0,a2.r,0,0);
+			}
+		}break;
+	};
+}
+ActorManager.prototype.DetermineVisionConsequence = function(a1,a2,index1,index2){
+	var action = this.ReturnActorCombination(a1,a2);
+	var deltaRot = Math.abs(a1.rotation.GetAsDegree() - a2.rotation.GetAsDegree());
+	if(a1.type == 'robot' || a2.type == 'robot'){deltaRot=90};
+	switch(action){
+			case 1:{
+				if(a2.degreesToRotate.GetAsDegree() <= 0){
+					a2.SetDegreesToRotate(deltaRot);
+					a1.SetDegreesToRotate(Math.floor((Math.random()*180)+90));
+				}
+			}break;
+			case -1:{
+				if(a1.degreesToRotate.GetAsDegree() <= 0){			
+					a1.SetDegreesToRotate(deltaRot);
+					a2.SetDegreesToRotate(Math.floor((Math.random()*180)+90));
+				}
+			}break;
+			case -2:{
+				if(Math.floor((Math.random()*100)+0) < 90 && a1.degreesToRotate.GetAsDegree() <= 0){			
+					a1.SetDegreesToRotate(deltaRot);
+				}else{
+					a1.SetDegreesToRotate(Math.floor((Math.random()*180)+90));
+				}
+			}break;
+			case 2:{				
+				if(Math.floor((Math.random()*100)+0) < 90 && a2.degreesToRotate.GetAsDegree() <= 0){
+					a2.SetDegreesToRotate(deltaRot);
+				}else{
+					a1.SetDegreesToRotate(Math.floor((Math.random()*180)+90));
+				}
+			}break;
+			case -3:{
+				if(a2.degreesToRotate.GetAsDegree() <= 0){			
+					a2.SetDegreesToRotate(deltaRot);
+				}
+			}break;
+			case 3:{		
+				if(a1.degreesToRotate.GetAsDegree() <= 0){
+					a1.SetDegreesToRotate(deltaRot);
+				}
+			}break;
+	};
+}
+ActorManager.prototype.DetermineFightOutcome = function(action,actor){
+	var repelledAttack = false;
+	var stengthValue = actor.strength*10;
+	//console.log(actor.type);
+	switch(action){
+		case 1:
+		case -1:{		
+			if(Math.floor((Math.random()*100)+0) < stengthValue){
+				repelledAttack = true;
+			}
+		}break;
+		case 2:
+		case -2:{		
+			if(Math.floor((Math.random()*100)+0) < 90){
+				repelledAttack = true;
+			}
+		}break;
+		case -3:
+		case 3:{		
+			if(Math.floor((Math.random()*100)+0) < stengthValue){
+				repelledAttack = true;
+			}
+		}break;
+	};
+	return repelledAttack;
+};
+ActorManager.prototype.ReturnActorCombination = function(a1,a2){
+	var a1Math = 0;
+	var a2Math = 0;
+	switch(a1.type){
+		case 'dead':{
+			a1Math=100;
+		}break;
+		case 'zombie':{
+			a1Math=1;
+		}break;
+		case 'human':{
+			a1Math=2;
+		}break;
+		case 'robot':{
+			a1Math=4;
+		}break;
+	};
+	switch(a2.type){
+		case 'dead':{
+			a2Math=100;
+		}break;
+		case 'zombie':{
+			a2Math=1;
+		}break;
+		case 'human':{
+			a2Math=2;
+		}break;
+		case 'robot':{
+			a2Math=4;
+		}break;
+	};
+	return a1Math-a2Math;
+};
+//
+//
+//
+//
+//
+var Actor = function(ctx){
+	this.objCtx  = ctx;
+	this.dotSize = 1;
+	this.x = 0;
+	this.y = 0;
+	this.type = 'human';
+	//Movement properties
+	this.rotation         = new Degree(0);
+	this.turnSpeed        = new Degree(2);
+	this.momentum         = 'forward';
+	this.stepsInDirection = 0;
+	this.degreesToRotate  = new Degree(0);
+	//Characteristics
+	this.speed            = 0;
+	this.maxspeed         = 0;
+	this.stength          = 0;
+	this.maxstength       = 0;
+	this.energy           = 0;
+	this.maxenergy        = 0;
+	this.canmove          = true;
+	//AI properties
+	this.detectionLength = 0;
+	this.canRotate        = true;
+	//colors
+	this.col_Human  = 'rgba(255,255,255,1.0)';
+	this.col_Zombie = 'rgba(255,0,255,1.0)';
+	this.col_Robot  = 'rgba(100,100,255,1.0)';
+	this.col_Dead   = 'rgba(255,0,0,0.25)';
+}
+Actor.prototype.Create = function(t,x,y,s,r,ts,dl,st,me){
+	this.x=x;
+	this.y=y;
+	if(t!=null){this.type=t;}
+	if(s!=null){this.speed=s;}
+	if(r!=null){this.rotation.Set(r,"degrees");}
+	if(ts!=null){this.turnSpeed.Set(ts,"radians");}
+	if(dl!=null){this.detectionLength=dl;}
+	if(st!=null){this.strength=st;}
+	this.maxenergy  = (me!=null)?me:0;
+	this.energy     = this.maxenergy;
+	this.maxstength = this.stength;
+	this.maxspeed   = this.speed;
+};
+Actor.prototype.Draw = function(){
+	this.objCtx.beginPath();
+		switch(this.type){
+			case 'human':{this.objCtx.fillStyle = this.col_Human;}break;
+			case 'zombie':{this.objCtx.fillStyle = this.col_Zombie;}break;
+			case 'robot':{this.objCtx.fillStyle = this.col_Robot;}break;
+			case 'dead':{this.objCtx.fillStyle = this.col_Dead;}break;
+			default:{this.objCtx.fillStyle = this.col_Human;}break;
+		}
+		this.objCtx.arc(this.x,this.y,this.dotSize,0,2*Math.PI,false);
+		this.objCtx.fill();
+	this.objCtx .closePath();
+};
+Actor.prototype.Move = function(){
+	this.Rotate();
+	if(this.canmove == true){
+		this.energy += (this.energy > 0)?-1:0;
+		this.canmove = (this.energy <= 0)?false:this.energy;
+		var newY=0;
+		var newX=0;
+		switch(this.momentum){
+			case 'idle':{
+				newX = this.x;
+				newY = this.y;
+			}break;
+			case 'forward':{
+				newX = this.x + Math.cos(this.rotation.GetAsRadian()) * this.speed; 
+				newY = this.y + Math.sin(this.rotation.GetAsRadian()) * this.speed; 
+			}break;
+			case 'backward':{
+				newX = this.x - Math.cos(this.rotation.GetAsRadian()) * (this.speed*0.25); 
+				newY = this.y - Math.sin(this.rotation.GetAsRadian()) * (this.speed*0.25); 
+			}break;
+			default:{
+				newX = this.x;
+				newY = this.y;
+			}break;
+		}
+		if(this.CheckNextStepIsInBounds(newX,newY) == true &&
+		   this.CheckNextStepIsNotAWall(newX,newY) == true &&
+		   this.degreesToRotate.GetAsDegree() <= 0)
+		{
+			this.x = newX;
+			this.y = newY;
+		}else{
+			this.SetDegreesToRotate(Math.floor((Math.random()*180)+30));
+		}
+	}else{
+		this.energy += (this.energy < this.maxenergy)?1:0;
+		this.canmove = (this.energy >= this.maxenergy)?true:this.energy;
+	};
+};
+Actor.prototype.Rotate = function(){
+	if(this.degreesToRotate.GetAsDegree() > 0){
+		this.rotation.Set((this.rotation.GetAsRadian() + this.turnSpeed.GetAsRadian()),"radians");
+		this.degreesToRotate.Set((this.degreesToRotate.GetAsRadian() - this.turnSpeed.GetAsRadian()),"radians");
+	}
+};
+Actor.prototype.SetDegreesToRotate = function(degrees){
+	if(this.degreesToRotate.GetAsDegree() <= 0){
+		if(this.type != 'robot')
+		{
+			this.degreesToRotate.Set(degrees,"degrees");
+		}else{
+			this.degreesToRotate.Set(90,"degrees");
+		}
+	}
+};
+Actor.prototype.CheckNextStepIsInBounds = function(x,y){
+	if(x > 0 && x < window.CNVS[1].width &&
+	   y > 0 && y < window.CNVS[1].height)
+	{
+		return true;
+	}else{
+		return false;
+	}
+};
+Actor.prototype.CheckNextStepIsNotAWall = function(x,y){
+	var BlockRow  = Math.floor(x/window.MAP.tilesize);
+	var BlockCol  = Math.floor(y/window.MAP.tilesize);
+	if(window.MAP.tiles[BlockRow][BlockCol] != undefined && 
+		window.MAP.tiles[BlockRow][BlockCol] != null)
+	{
+		switch(window.MAP.tiles[BlockRow][BlockCol][2])
+		{
+			case 0: {this.speed=this.maxspeed;return true;}break;
+			case 1: {return false;}break;
+			case 2: {this.speed=0.5;return true;}break;
+			case 3: {
+				switch(this.type){
+					case 'human':{return true;}break;
+					case 'zombie':{this.speed=0.5;return true;}break;
+					case 'robot':{return false;}break;
+					default:{return true;}break;
+				}
+			}break;
+			default: {return true;}break;
+		}
+	}else{
+		return false;
+	}
+};
+Actor.prototype.CheckIfActorInVision = function(a){
+	if(Math.abs(this.x-a.x) <= this.detectionLength && Math.abs(this.y-a.y) <= this.detectionLength )
+	{
+		return true;
+	}else{
+		return false;
+	}	
+};
+Actor.prototype.CheckActorCollision = function(a){
+	if(Math.abs(this.x-a.x) <= this.dotSize && Math.abs(this.y-a.y) <= this.dotSize )
+	{
+		return true;
+	}else{
+		return false;
+	}
+};
+</SCRIPT>
+</HTML>
