@@ -1,0 +1,412 @@
+<!DOCTYPE HTML>
+<HTML>
+<HEAD>
+<TITLE>Garbtronix: ZS</TITLE>
+<STYLE>
+	body{
+		background-color: rgb(10,15,10);
+	}
+</STYLE>
+</HEAD>
+<BODY>	
+	<CANVAS id="cnvBack"
+			style="
+			background-color: rgba(0,0,0,0.0);
+			position: absolute;
+			">
+	</CANVAS>
+	<CANVAS id="cnvFront"
+			style="
+			background-color: rgba(0,0,0,0.0);
+			position: absolute;
+			border: 1px red;">
+	</CANVAS>
+</BODY>
+<SCRIPT>
+//---------------------------------------
+//
+// GLOBALS
+//
+//---------------------------------------
+window.onload = function(){
+	RebuildEverything();	
+    //window.MAP.Create();
+    window.INPUT[0] = 2000;
+	window.INPUT[1] = Math.floor(
+		(Math.random()*(200))+10
+		);
+	window.INPUT[2] = Math.floor(
+		(Math.random()*(100))+5
+			);
+	//---------------------------------------
+	//
+	// MAIN LOOP
+	//
+	//---------------------------------------
+	window.MAINLOOP = window.setTimeout(mainLoop,window.RENDERCYCLE);
+    //mainLoop();
+};
+function mainLoop(){
+    switch(window.STATE)
+    {
+        case 'Title':
+        {
+            window.CTXS[0].Render();
+            window.STATE = 'Build';
+        }
+        break;
+        case 'Build':
+        {
+            window.ACTORS.Create();
+            window.STATE = 'Run';
+        }break;
+        case 'Run':
+        {
+            
+            window.CTXS[0].Render();
+            window.CTXS[1].Render();
+            window.ACTORS.DetermineState();
+            window.STEP++;
+        }
+        break;
+    };//end of render switch
+    setTimeout(mainLoop,window.RENDERCYCLE);
+}
+function RebuildEverything(){
+		window.CNVS        = new Array();
+		window.CNVS[0]     = document.getElementById('cnvBack');
+		window.CNVS[1]     = document.getElementById('cnvFront');
+		window.CNVS[0].style.top = 10;
+		window.CNVS[1].style.top = 10;
+		window.CTXS        = new Array();
+		window.CTXS[0] = new Context(window.CNVS[0].getContext('2d'),-1);
+		window.CTXS[1] = new Context(window.CNVS[1].getContext('2d'),1);
+		window.RENDERCYCLE = (1000/10);
+		window.STATE       = 'Title';
+		window.INPUT       = new Array();
+        window.STEP        = 0;
+		//window.MAP         = new Map();
+		window.ACTORS      = new ActorManager();
+		window.CTXS[0].AppendObjectToRender(new Array(
+			//window.MAP
+		));
+		window.CTXS[1].AppendObjectToRender(new Array(
+			window.ACTORS
+		));
+}
+function NullEverything(){
+	for(var i=0;i<window.CNVS.length;i++)
+	{
+		window.CTXS[i] = null;
+		window.CNVS[i] = null;
+	}
+	window.CNVS          = null;
+	window.CTXS          = null;
+	window.RENDERCYCLE   = null;
+	window.STATE         = null;
+	window.ACTORS        = null;
+	//window.MAP           = null;
+    window.STEP          = 0;
+	window.INPUT         = null;
+	if(window.MAINLOOP != null)
+	{
+		window.MAINLOOP.clearInterval(); 
+	}
+	window.MAINLOOP     = null;
+}
+//
+//
+//
+//
+//
+var Context = function(ctx,renderRate){
+	this.ctx           = ctx;
+	this.rate          = renderRate;
+	this.currentTick   = renderRate;
+	this.objectsToDraw = new Array();
+	this.override      = false;
+};
+Context.prototype.Render = function(){
+	if(this.override == false)
+	{
+		if(this.currentTick == this.rate){
+			this.ctx.clearRect(0,0,window.CNVS[0].width,window.CNVS[0].height);
+			for(var i=0;i<this.objectsToDraw.length;i++)
+			{
+				this.objectsToDraw[i].Draw();
+			}
+			this.currentTick = (this.currentTick != -1)?0:-1;
+		}else{
+			this.currentTick += (this.currentTick != -1)?1:0;
+		}
+	}else{
+		this.currentTick = this.rate;
+		this.override = false;
+	}
+};
+Context.prototype.AppendObjectToRender = function(obj){
+	for(var i=0;i<obj.length;i++){
+		if(obj[i]!= null || !(typeof obj[i].Draw === 'undefined')){
+			obj[i].objCtx = this.ctx;
+			this.objectsToDraw.push(obj[i]);
+		}else{
+			console.log('Object is null or does not have a draw method defined: '+obj[i]);
+		}
+	}
+};
+//
+//
+//
+//
+//
+var Map = function(){
+	this.objCtx   = null;
+	this.rows     = 60;
+	this.columns  = 30;
+	this.treeMin   = .01;
+	this.treeMax   = .3;
+	this.waterMin  = .01;
+	this.waterMax  = .3;
+	this.brickMin  = .01;
+	this.brickMax  = .2;
+	this.tilesize = 10;
+	this.tiles    = new Array();
+	this.tileData = new Array();
+};
+Map.prototype.Create = function(){
+	//Randomize Map
+	// 165 tiles
+	var maxTiles = this.rows*this.columns;
+	var trees = Math.floor((Math.random()*(maxTiles*this.treeMax))+(maxTiles*this.treeMin));
+	var water = Math.floor((Math.random()*(maxTiles*this.waterMax))+(maxTiles*this.waterMin));
+	var walls = Math.floor((Math.random()*(maxTiles*this.brickMax))+(maxTiles*this.brickMin));
+	var startTile = Math.floor((Math.random()*22)+0);
+	for(var r=0;r<this.rows;r++){
+		this.tileData[r] = new Array();
+		for(var c=0;c<this.columns;c++){
+			var temp = Math.floor((Math.random()*4)+1);
+			if((r+1)*(c+1) > startTile){
+				switch(temp){
+					case 0:{
+						this.tileData[r][c] = 0;
+					}break;
+					case 1:{
+						this.tileData[r][c] = (walls > 0)?temp:0;
+						walls--;
+					}break;
+					case 2:{
+						this.tileData[r][c] = (trees > 0)?temp:0;
+						trees--;
+					}break;
+					case 3:{
+						this.tileData[r][c] = (water > 0)?temp:0;
+						water--;
+					}break;
+					default:{
+						this.tileData[r][c] = 0;
+					}break;
+				}
+			}else{
+				this.tileData[r][c] = 0;
+			}
+		}
+	}
+	//Create data base on array
+	for(var i=0;i<window.CNVS.length;i++){
+		window.CNVS[i].width  = this.rows*this.tilesize;
+		window.CNVS[i].height = this.columns*this.tilesize;
+	}
+	//Add Tiles to Array
+	for(var r=0;r<this.rows;r++)
+	{
+		this.tiles[r] = new Array();
+		for(var c=0;c<this.columns;c++)
+		{
+			this.tiles[r][c] = new Array((r*this.tilesize),(c*this.tilesize),this.tileData[r][c]);
+		}
+	}
+};
+Map.prototype.Draw = function(){
+	for(var r=0;r<this.rows;r++)
+	{
+		for(var c=0;c<this.columns;c++)
+		{
+			this.objCtx.beginPath();
+			this.objCtx.strokeStyle = 'rgba(255,255,255,0.03)';
+			this.objCtx.strokeRect(this.tiles[r][c][0],this.tiles[r][c][1],this.tilesize,this.tilesize);
+			switch(this.tiles[r][c][2])
+			{
+				case 0:{}break;
+				case 1:{
+					this.objCtx.fillStyle = 'rgba(255,255,255,0.3)';
+					this.objCtx.fillRect(this.tiles[r][c][0],this.tiles[r][c][1],this.tilesize,this.tilesize);				
+				}break;
+				case 2:{
+					this.objCtx.fillStyle = 'rgba(100,255,100,0.3)';
+					this.objCtx.fillRect(this.tiles[r][c][0],this.tiles[r][c][1],this.tilesize,this.tilesize);
+				}break;	
+				case 3:{
+					this.objCtx.fillStyle = 'rgba(100,100,255,0.5)';
+					this.objCtx.fillRect(this.tiles[r][c][0],this.tiles[r][c][1],this.tilesize,this.tilesize);
+				}break;							
+				default:{}break;
+			}
+			this.objCtx.closePath();
+		}
+	}
+};
+//
+//
+//
+//
+//
+var ActorManager = function(){
+	this.objCtx = null;
+    this.rows   = 100;
+    this.cols   = 100;
+	this.actors = new Array(this.rows);
+};
+ActorManager.prototype.GetGliderCoords = function(r,c){
+    let desiredCoords = [
+        [3,3],[3,4],[3,5],[2,5],[1,4]
+    ];
+    let isCoord = false;
+    for(let i=0;i<desiredCoords.length;i++){
+        if(r == desiredCoords[i][0] && c == desiredCoords[i][1]){
+            isCoord = true;
+        }
+    }
+    return isCoord;
+}
+ActorManager.prototype.Create = function(){
+	let winH = window.CNVS[1].height;
+	let winW = window.CNVS[1].width;
+    let i=0;
+	for(let r=0;r<this.rows;r++){
+        this.actors[r] = [];
+        for(let c=0;c<this.cols;c++){
+		    this.actors[r][c] = new Actor(this.objCtx);
+
+            //let isalive = this.GetGliderCoords(r,c);
+            let isalive  = Math.floor((Math.random()*(10))+1) > 8;
+            let hasCovid = Math.floor((Math.random()*(10))+1) == 10;
+            this.actors[r][c].Create(5*r,5*c,isalive,hasCovid);
+            i++;
+        }
+	}
+};
+ActorManager.prototype.Draw = function(){
+	for(let r=0;r<this.actors.length;r++){
+    	for(var c=0;c<this.actors[r].length;c++){
+		    this.actors[r][c].Draw();
+	    }
+	}	
+};
+ActorManager.prototype.getAllAliveCells = function(){
+    let cells = [];
+    for(var r=0;r<this.actors.length;r++){
+    	for(var c=0;c<this.actors[r].length;c++){
+		    if(this.actors[r][c].alive){
+                cells.push([r,c]);
+            }
+	    }
+	}
+    return cells;
+};
+ActorManager.prototype.GetNeighbors = function(r,c){
+        let prevRow = r-1 > -1                    ? r-1 : this.actors.length - 1;
+        let nextRow = r+1 < this.actors.length    ? r+1 : 0;
+        let prevCol = c-1 > -1                    ? c-1 : this.actors[r].length - 1;
+        let nextCol = c+1 < this.actors[r].length ? c+1 : 0 
+        return [
+        [prevRow,prevCol],[prevRow,c],[prevRow,nextCol],
+        [r,prevCol],[r,nextCol],
+        [nextRow,prevCol],[nextRow,c],[nextRow,nextCol],
+        ];
+};
+ActorManager.prototype.DetermineState = function(){
+	for(var r=0;r<this.actors.length;r++){
+    	for(var c=0;c<this.actors[r].length;c++){
+		    let living  = 0;
+            let covid   = 0;
+            let neighbors = this.GetNeighbors(r,c);
+            for(let n=0; n<neighbors.length;n++){
+                living += this.actors[neighbors[n][0]][neighbors[n][1]].alive ? 1 : 0;
+                covid  += this.actors[neighbors[n][0]][neighbors[n][1]].covid > 0 ? 1 : 0;
+            }
+            
+            if (this.actors[r][c].alive){
+                //Classic conway's death condition
+                if((living < 2 || living > 3)){
+                    this.actors[r][c].nextAlive = false;
+                }
+                //New Covid Infection conditions
+                if(covid > 0 && this.actors[r][c].covid == 0){
+                    let caughtCovid             = Math.floor((Math.random()*(10))+(1+covid)) > 8;
+                    this.actors[r][c].nextCovid = caughtCovid ? 6 : this.actors[r][c].covid;
+                }
+                //covid death
+                if(this.actors[r][c].nextAlive && this.actors[r][c].covid > 0){
+                    let max = 15 - covid;
+                    this.actors[r][c].nextAlive =  Math.floor((Math.random()*(max))+(1)) == max;
+                }
+
+            }else if (!this.actors[r][c].alive && living == 3){
+                this.actors[r][c].nextAlive = true;
+            }
+	    }
+	}
+	for(var r=0;r<this.actors.length;r++){
+    	for(var c=0;c<this.actors[r].length;c++){
+		    this.actors[r][c].alive     = this.actors[r][c].nextAlive;
+            this.actors[r][c].nextAlive = this.actors[r][c].alive;
+            this.actors[r][c].covid     = this.actors[r][c].nextCovid;
+            this.actors[r][c].covid    -= this.actors[r][c].covid > 0 ? 1 : 0;
+            this.actors[r][c].nextCovid = this.actors[r][c].covid;
+	    }
+	}
+}
+ActorManager.prototype.DetermineVisionConsequence = function(a1,a2,index1,index2){
+}
+//
+//
+//
+//
+//
+var Actor = function(ctx){
+	this.objCtx   = ctx;
+	this.dotSize  = 5;
+	this.x        = 0;
+	this.y        = 0;
+	//Characteristics
+    this.alive      = false;
+    this.nextAlive  = this.alive;
+    this.covid      = 0;
+    this.nextCovid  = this.covid;
+	//AI properties
+    this.lineage  = [];
+	//colors
+	this.col_Stable  = 'rgba(255,255,255,1.0)';
+	this.col_Covid   = 'rgba(0,255,0,1.0)';
+	this.col_Dead    = 'rgba(255,0,0,0.25)';
+}
+Actor.prototype.Create = function(x,y,a=false,c=0){
+	this.x          = x;
+	this.y          = y;
+	this.alive      = a;
+    this.nextAlive  = a;
+    this.covid      = c;
+    this.nextCovid  = c;
+};
+Actor.prototype.Draw = function(){
+	this.objCtx.beginPath();
+	if(!this.alive){
+            return;
+    }
+    this.objCtx.fillStyle  = this.covid > 0 ? this.col_Covid:this.col_Stable;
+    this.objCtx.rect(this.x,this.y,this.dotSize,this.dotSize);
+    this.objCtx.fill();
+	this.objCtx.closePath();
+};
+</SCRIPT>
+</HTML>
