@@ -31,7 +31,7 @@
 window.onload = function(){
 	RebuildEverything();	
     window.MAP.Create();
-    window.INPUT[0] = 2000;
+    window.INPUT[0] = 300; //Number of all characters
 	window.INPUT[1] = Math.floor(
 		(Math.random()*(200))+10
 		);
@@ -536,7 +536,7 @@ var Actor = function(ctx){
 	this.detectionLength = 0;
 	this.canRotate        = true;
 	//colors
-	this.col_Human  = 'rgba(255,255,255,1.0)';
+	this.col_Human  = 'rgba(255,255,0,1.0)';
 	this.col_Zombie = 'rgba(255,0,255,1.0)';
 	this.col_Robot  = 'rgba(100,100,255,1.0)';
 	this.col_Dead   = 'rgba(255,0,0,0.25)';
